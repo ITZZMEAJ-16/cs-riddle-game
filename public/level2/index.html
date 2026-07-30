@@ -12,19 +12,30 @@
 <body>
     <div class="card">
         <h2>Level 2: The Ghost Variable</h2>
-        <p>Memory leaves ghosts. Inspect the page code parameters to extract the entry validation key.</p>
-        <input type="text" id="answer" placeholder="Enter key flags here...">
-        <p style="font-size: 12px; opacity: 0.6;">Hint: Execute the handleSubmission() function manually via the DevTools console.</p>
+        <p>Memory leaves ghosts. Check the DevTools standard runtime log matrices tracker system directly to read active string targets.</p>
+        <input type="text" id="answer" placeholder="Enter target variable here">
+        <p style="font-size:11px; opacity:0.5; margin-top:15px;">Run the local console evaluation script wrapper function <code>validateConsoleSession()</code> through your console pipeline to fire answer verification loops.</p>
     </div>
 
     <script>
-        const internal_key = "console_ninja";
-        const successAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav');
-        const failAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
+        // Print the real key directly to the live memory stream console interface only
+        console.log("🕵️ [ENIGMA LOG] System Vector active. Registration parameters target string key value: 'console_ninja'");
 
-        document.addEventListener('keydown', () => { successAudio.load(); failAudio.load(); }, { once: true });
+        function playSynthSound(type) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return;
+            const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            if (type === 'success') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            } else {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, ctx.currentTime); osc.frequency.linearRampToValueAtTime(70, ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+            }
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+        }
 
-        async function handleSubmission() {
+        async function validateConsoleSession() {
             const val = document.getElementById('answer').value;
             const res = await fetch('/api/submit-answer', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -33,10 +44,10 @@
             const data = await res.json();
             
             if (data.success) {
-                successAudio.play().catch(p => console.log(p));
-                setTimeout(() => { window.location.href = data.nextLevel; }, 600);
+                playSynthSound('success');
+                setTimeout(() => { window.location.href = data.nextLevel; }, 500);
             } else {
-                failAudio.play().catch(p => console.log(p));
+                playSynthSound('fail');
                 const card = document.querySelector('.card');
                 card.style.transform = 'translateX(10px)';
                 setTimeout(() => { card.style.transform = 'translateX(-10px)'; }, 50);

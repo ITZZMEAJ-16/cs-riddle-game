@@ -5,20 +5,51 @@
     <title>The Sandbox Enigma</title>
     <style>
         body { background: #0d1117; color: #58a6ff; font-family: monospace; text-align: center; padding: 50px; }
-        button { background: #238636; color: white; border: none; padding: 15px 30px; font-size: 18px; cursor: pointer; border-radius: 5px; margin-top: 20px; font-family: monospace; }
+        .form-container { background: #161b22; border: 1px solid #30363d; padding: 30px; display: inline-block; border-radius: 8px; margin-top: 30px; width: 350px; }
+        input { background: #0d1117; border: 1px solid #30363d; color: #58a6ff; font-family: monospace; padding: 10px; width: 85%; margin-bottom: 15px; text-align: center; border-radius: 4px; }
+        button { background: #238636; color: white; border: none; padding: 12px 25px; font-size: 16px; cursor: pointer; border-radius: 5px; font-family: monospace; font-weight: bold; width: 92%; }
         button:hover { background: #2ea043; }
+        .warning { color: #ff7b72; font-size: 12px; margin-top: 15px; max-width: 350px; margin-left: auto; margin-right: auto; }
     </style>
 </head>
 <body>
     <h1>[ THE SANDBOX ENIGMA ]</h1>
-    <p>A multi-level terminal challenge testing your structural logic, technical deduction, and engineering intuition.</p>
-    <button onclick="startGame()">INITIALIZE SYSTEM</button>
+    <p>A multi-level terminal challenge testing engineering logic and technical deduction deduction parameters.</p>
+    
+    <div class="form-container">
+        <h3>COMPETITOR REGISTRATION</h3>
+        <input type="text" id="playerName" placeholder="Enter Full Name" required>
+        <br>
+        <input type="text" id="playerReg" placeholder="Enter Registration / Roll No" required>
+        <br>
+        <button onclick="initializeSystem()">INITIALIZE SYSTEM</button>
+    </div>
+    <p class="warning">⚠️ Notice: This platform requires advanced local loop and inspection analysis capabilities. Mobile displays are not supported.</p>
 
     <script>
         const startAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav');
-        async function startGame() {
-            startAudio.play().catch(e => console.log(e));
-            const res = await fetch('/api/start', { method: 'POST' });
+        
+        // Block mobile environments immediately
+        if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+            document.querySelector('.form-container').innerHTML = "<h4 style='color:#ff7b72;'>ACCESS CRITICAL FAILURE: Execution requires access to high-tier console utilities (DevTools). Mobile hardware environments are incompatible. Please switch to a Desktop node browser immediately.</h4>";
+        }
+
+        async function initializeSystem() {
+            const nameVal = document.getElementById('playerName').value.trim();
+            const regVal = document.getElementById('playerReg').value.trim();
+            
+            if(!nameVal || !regVal) {
+                alert("Please fill out your identity parameters before connecting.");
+                return;
+            }
+
+            try { startAudio.play(); } catch(e) {}
+            
+            const res = await fetch('/api/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: nameVal, regNo: regVal })
+            });
             const data = await res.json();
             if (data.success) {
                 setTimeout(() => { window.location.href = data.redirect; }, 400);
