@@ -41,6 +41,10 @@ async function initDatabase() {
                 completion_time TIMESTAMPTZ DEFAULT NOW()
             )
         `);
+        // Ensure columns exist, useful if table was created with an older schema
+        await pool.query(`
+            ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS name TEXT, ADD COLUMN IF NOT EXISTS reg_no TEXT UNIQUE, ADD COLUMN IF NOT EXISTS completion_time TIMESTAMPTZ DEFAULT NOW();
+        `);
         console.log("✅ Supabase Cloud Database Connected & Tables Initialized.");
     } catch (err) {
         console.error("🚨 Cloud DB Connection Failure:", err);
