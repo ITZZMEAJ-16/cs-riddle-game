@@ -4,6 +4,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import pg from 'pg';
+import bcrypt from 'bcrypt';
+import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -34,12 +37,34 @@ async function initDatabase() {
                 completion_time TEXT
             )
         `);
-        console.log("✅ Supabase Cloud Database Connected & Table Initialized.");
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                verification_token TEXT,
+                is_verified BOOLEAN DEFAULT FALSE,
+                name TEXT,
+                reg_no TEXT
+            )
+        `);
+        console.log("✅ Supabase Cloud Database Connected & Tables Initialized.");
     } catch (err) {
         console.error("🚨 Cloud DB Connection Failure:", err);
     }
 }
 initDatabase();
+
+// Nodemailer transport
+const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false, // true for 465, false for other ports
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
 const RIDDLE_ANSWERS = {
     1: "4815162342",      
@@ -64,20 +89,110 @@ const checkProgress = (req, res, next) => {
     next();
 };
 
-app.post('/api/start', (req, res) => {
-    const { name, regNo } = req.body;
-    if (!name || !regNo) return res.status(400).json({ success: false });
-    res.cookie('player_level', '1', { signed: true, httpOnly: true });
-    res.cookie('player_name', name, { signed: true, httpOnly: true });
-    res.cookie('player_reg', regNo, { signed: true, httpOnly: true });
-    return res.json({ success: true, redirect: '/level1/' });
+const checkAuth = (req, res, next) => {
+    if (!req.signedCookies.user_id) {
+        return res.redirect('/');
+    }
+    next();
+}
+
+app.post('/api/register', async (req, res) => {
+    const { email, password, name, regNo } = req.body;
+    if (!email || !password || !name || !regNo) {
+        return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+
+        const result = await pool.query(
+            "INSERT INTO users (email, password, verification_token, name, reg_no) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+            [email, hashedPassword, verificationToken, name, regNo]
+        );
+
+        const verificationLink = `http://localhost:${PORT}/api/verify?token=${verificationToken}`;
+        
+        await transporter.sendMail({
+            from: process.env.EMAIL_FROM,
+            to: email,
+            subject: 'Verify your email address',
+            html: `Please click this link to verify your email: <a href="${verificationLink}">${verificationLink}</a>`
+        });
+
+        res.json({ success: true, message: 'Registration successful. Please check your email to verify your account.' });
+    } catch (error) {
+        if (error.code === '23505') { // unique_violation
+            return res.status(400).json({ success: false, message: 'Email already exists.' });
+        }
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 });
+
+app.get('/api/verify', async (req, res) => {
+    const { token } = req.query;
+    if (!token) {
+        return res.status(400).send('Invalid verification token.');
+    }
+
+    try {
+        const result = await pool.query("SELECT * FROM users WHERE verification_token = $1", [token]);
+        if (result.rows.length === 0) {
+            return res.status(400).send('Invalid verification token.');
+        }
+
+        const user = result.rows[0];
+        await pool.query("UPDATE users SET is_verified = TRUE, verification_token = NULL WHERE id = $1", [user.id]);
+
+        res.send('Email verified successfully! You can now <a href="/">login</a>.');
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server error');
+    }
+});
+
+
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ success: false, message: 'Email and password are required.' });
+    }
+
+    try {
+        const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        if (result.rows.length === 0) {
+            return res.status(400).json({ success: false, message: 'Invalid credentials.' });
+        }
+
+        const user = result.rows[0];
+        if (!user.is_verified) {
+            return res.status(400).json({ success: false, message: 'Please verify your email first.' });
+        }
+
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            return res.status(400).json({ success: false, message: 'Invalid credentials.' });
+        }
+
+        res.cookie('user_id', user.id, { signed: true, httpOnly: true });
+        res.cookie('player_level', '1', { signed: true, httpOnly: true });
+        res.cookie('player_name', user.name, { signed: true, httpOnly: true });
+        res.cookie('player_reg', user.reg_no, { signed: true, httpOnly: true });
+
+        res.json({ success: true, redirect: '/level1/' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 
 app.get('/api/hidden-packet-stream', (req, res) => {
     res.json({ message: "Monitoring...", hidden_flag: "packet_captured" });
 });
 
-app.post('/api/submit-answer', (req, res) => {
+app.post('/api/submit-answer', checkAuth, (req, res) => {
     const { answer } = req.body;
     const currentProgress = req.signedCookies.player_level ? parseInt(req.signedCookies.player_level, 10) : 1;
     const correctAnswer = RIDDLE_ANSWERS[currentProgress];
@@ -126,11 +241,12 @@ app.get('/admin/leaderboard', async (req, res) => {
     }
 });
 
+app.use(checkAuth);
 app.use(checkProgress);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 🏆 SAVE WINNER DATA TO THE CLOUD DATABASE
-app.get('/victory', async (req, res) => {
+app.get('/victory', checkAuth, async (req, res) => {
     const currentProgress = req.signedCookies.player_level ? parseInt(req.signedCookies.player_level, 10) : 1;
     const name = req.signedCookies.player_name;
     const regNo = req.signedCookies.player_reg;

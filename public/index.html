@@ -10,49 +10,121 @@
         button { background: #238636; color: white; border: none; padding: 12px 25px; font-size: 16px; cursor: pointer; border-radius: 5px; font-family: monospace; font-weight: bold; width: 92%; }
         button:hover { background: #2ea043; }
         .warning { color: #ff7b72; font-size: 12px; margin-top: 15px; max-width: 350px; margin-left: auto; margin-right: auto; }
+        #message { margin-top: 15px; }
+        .toggle-form { margin-top: 15px; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
     <h1>[ THE SANDBOX ENIGMA ]</h1>
     <p>A multi-level terminal challenge testing engineering logic and technical deduction deduction parameters.</p>
     
-    <div class="form-container">
-        <h3>COMPETITOR REGISTRATION</h3>
-        <input type="text" id="playerName" placeholder="Enter Full Name" required>
+    <div id="login-container" class="form-container">
+        <h3>COMPETITOR LOGIN</h3>
+        <input type="email" id="loginEmail" placeholder="Enter Email" required>
         <br>
-        <input type="text" id="playerReg" placeholder="Enter Registration / Roll No" required>
+        <input type="password" id="loginPassword" placeholder="Enter Password" required>
         <br>
-        <button onclick="initializeSystem()">INITIALIZE SYSTEM</button>
+        <button onclick="login()">LOGIN</button>
+        <p class="toggle-form" onclick="toggleForms()">Need to register?</p>
     </div>
+
+    <div id="register-container" class="form-container" style="display: none;">
+        <h3>COMPETITOR REGISTRATION</h3>
+        <input type="text" id="registerName" placeholder="Enter Full Name" required>
+        <br>
+        <input type="text" id="registerReg" placeholder="Enter Registration / Roll No" required>
+        <br>
+        <input type="email" id="registerEmail" placeholder="Enter Email" required>
+        <br>
+        <input type="password" id="registerPassword" placeholder="Enter Password" required>
+        <br>
+        <button onclick="register()">REGISTER</button>
+        <p class="toggle-form" onclick="toggleForms()">Already registered?</p>
+    </div>
+
+    <p id="message"></p>
     <p class="warning">⚠️ Notice: This platform requires advanced local loop and inspection analysis capabilities. Mobile displays are not supported.</p>
 
     <script>
         const startAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav');
         
-        // Block mobile environments immediately
         if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-            document.querySelector('.form-container').innerHTML = "<h4 style='color:#ff7b72;'>ACCESS CRITICAL FAILURE: Execution requires access to high-tier console utilities (DevTools). Mobile hardware environments are incompatible. Please switch to a Desktop node browser immediately.</h4>";
+            document.getElementById('login-container').innerHTML = "<h4 style='color:#ff7b72;'>ACCESS CRITICAL FAILURE: Execution requires access to high-tier console utilities (DevTools). Mobile hardware environments are incompatible. Please switch to a Desktop node browser immediately.</h4>";
+            document.getElementById('register-container').style.display = 'none';
         }
 
-        async function initializeSystem() {
-            const nameVal = document.getElementById('playerName').value.trim();
-            const regVal = document.getElementById('playerReg').value.trim();
-            
-            if(!nameVal || !regVal) {
-                alert("Please fill out your identity parameters before connecting.");
+        function toggleForms() {
+            const loginContainer = document.getElementById('login-container');
+            const registerContainer = document.getElementById('register-container');
+            if (loginContainer.style.display === 'none') {
+                loginContainer.style.display = 'block';
+                registerContainer.style.display = 'none';
+            } else {
+                loginContainer.style.display = 'none';
+                registerContainer.style.display = 'block';
+            }
+        }
+
+        async function register() {
+            const name = document.getElementById('registerName').value.trim();
+            const regNo = document.getElementById('registerReg').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value.trim();
+            const messageEl = document.getElementById('message');
+
+            if (!name || !regNo || !email || !password) {
+                messageEl.style.color = '#ff7b72';
+                messageEl.textContent = "All fields are required.";
                 return;
             }
 
             try { startAudio.play(); } catch(e) {}
-            
-            const res = await fetch('/api/start', {
+
+            const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: nameVal, regNo: regVal })
+                body: JSON.stringify({ name, regNo, email, password })
             });
             const data = await res.json();
+            
             if (data.success) {
-                setTimeout(() => { window.location.href = data.redirect; }, 400);
+                messageEl.style.color = '#56d364';
+                messageEl.textContent = data.message;
+                setTimeout(() => {
+                    toggleForms();
+                    messageEl.textContent = '';
+                }, 3000);
+            } else {
+                messageEl.style.color = '#ff7b72';
+                messageEl.textContent = data.message;
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const messageEl = document.getElementById('message');
+
+            if (!email || !password) {
+                messageEl.style.color = '#ff7b72';
+                messageEl.textContent = "Email and password are required.";
+                return;
+            }
+
+            try { startAudio.play(); } catch(e) {}
+
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                window.location.href = data.redirect;
+            } else {
+                messageEl.style.color = '#ff7b72';
+                messageEl.textContent = data.message;
             }
         }
     </script>
