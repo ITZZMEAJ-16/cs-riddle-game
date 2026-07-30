@@ -62,9 +62,12 @@ const RIDDLE_ANSWERS = {
     3: "admin_override",
     4: "packet_captured",
     5: "hidden_in_plain_sight",
-    6: "i",
-    7: "deadbeef",
-    8: "root_access_granted"
+    6: "i", // Assuming this is the answer for the existing level 6
+    7: "deadbeef", // Assuming this is the answer for the existing level 7
+    8: "root_access_granted", // Assuming this is the answer for the existing level 8
+    9: "encrypt",
+    10: "plaintext",
+    11: "backwards"
 };
 
 const COOKIE_OPTIONS = {
@@ -166,7 +169,7 @@ app.get('/victory', checkAuth, async (req, res) => {
     const name = req.signedCookies.player_name;
     const regNo = req.signedCookies.player_reg;
     
-    if (currentProgress >= 9 && name) {
+    if (currentProgress >= 12 && name) {
         try {
             await pool.query(
                 "INSERT INTO leaderboard (name, reg_no) VALUES ($1, $2) ON CONFLICT (reg_no) DO NOTHING",
