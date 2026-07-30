@@ -2,58 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Level 2 - The Ghost Variable</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enigma Core | Level 2</title>
     <style>
-        body { background: #0f141c; color: #58a6ff; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #161b22; border: 1px solid #30363d; padding: 40px; border-radius: 8px; text-align: center; max-width: 450px; transition: transform 0.1s ease; }
-        input { background: #0d1117; border: 1px solid #30363d; color: #58a6ff; padding: 10px; text-align: center; width: 80%; margin-bottom: 15px; }
+        body { background: #0d1117; color: #c9d1d9; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .level-container { background: #161b22; border: 1px solid #30363d; padding: 40px; border-radius: 6px; width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        h2 { color: #db8135; margin-top: 0; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        .riddle-box { background: #0d1117; padding: 15px; border-left: 4px solid #db8135; margin-bottom: 20px; font-size: 14px; line-height: 1.5; }
+        input { width: 100%; padding: 10px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; font-family: monospace; box-sizing: border-box; margin-bottom: 20px; }
+        input:focus { border-color: #db8135; outline: none; }
+        button { width: 100%; padding: 12px; background: #238636; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-family: monospace; }
+        button:hover { background: #2ea043; }
+        .feedback { font-size: 13px; margin-top: 15px; display: none; padding: 10px; border-radius: 4px; }
+        .error { color: #f85149; background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.2); }
+        .success { color: #56d364; background: rgba(86, 211, 100, 0.1); border: 1px solid rgba(86, 211, 100, 0.2); }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>Level 2: The Ghost Variable</h2>
-        <p>Memory leaves ghosts. Check the DevTools standard runtime log matrices tracker system directly to read active string targets.</p>
-        <input type="text" id="answer" placeholder="Enter target variable here">
-        <p style="font-size:11px; opacity:0.5; margin-top:15px;">Run the local console evaluation script wrapper function <code>validateConsoleSession()</code> through your console pipeline to fire answer verification loops.</p>
+
+<div class="level-container">
+    <h2>🧩 PHASE II: VERTICAL EXPLOITS</h2>
+    <div class="riddle-box">
+        <!-- Replace this placeholder text with your actual Level 2 Riddle -->
+        A container has no locks, no hinges, no lid, yet golden treasure inside is hid. What is it?
     </div>
+    
+    <input type="text" id="answer-input" placeholder="Type level 2 decryption key..." autocomplete="off">
+    <button id="btn-submit">SUBMIT DECRYPTION KEY</button>
+    
+    <div id="feedback-box" class="feedback"></div>
+</div>
 
-    <script>
-        // Print the real key directly to the live memory stream console interface only
-        console.log("🕵️ [ENIGMA LOG] System Vector active. Registration parameters target string key value: 'console_ninja'");
+<script>
+    const feedbackBox = document.getElementById('feedback-box');
 
-        function playSynthSound(type) {
-            const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return;
-            const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            if (type === 'success') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            } else {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, ctx.currentTime); osc.frequency.linearRampToValueAtTime(70, ctx.currentTime + 0.25);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-            }
-            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+    document.getElementById('btn-submit').addEventListener('click', () => {
+        const answer = document.getElementById('answer-input').value.trim().toLowerCase();
+        
+        if (!answer) {
+            feedbackBox.className = "feedback error";
+            feedbackBox.textContent = "Input empty. Provide Level 2 key sequence.";
+            feedbackBox.style.display = "block";
+            return;
         }
 
-        async function validateConsoleSession() {
-            const val = document.getElementById('answer').value;
-            const res = await fetch('/api/submit-answer', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ answer: val })
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                playSynthSound('success');
-                setTimeout(() => { window.location.href = data.nextLevel; }, 500);
-            } else {
-                playSynthSound('fail');
-                const card = document.querySelector('.card');
-                card.style.transform = 'translateX(10px)';
-                setTimeout(() => { card.style.transform = 'translateX(-10px)'; }, 50);
-                setTimeout(() => { card.style.transform = 'translateX(0)'; }, 100);
-            }
+        // --- REPLACE 'egg' WITH YOUR ACTUAL LEVEL 2 ANSWER ---
+        if (answer === 'egg') {
+            feedbackBox.className = "feedback success";
+            feedbackBox.textContent = "✔ Core sector breached! Routing onwards into Phase 3 matrix clusters...";
+            feedbackBox.style.display = "block";
+
+            setTimeout(() => {
+                // Aligned clean directory routing pattern for the next levels
+                window.location.href = '/level3/';
+            }, 1200);
+        } else {
+            feedbackBox.className = "feedback error";
+            feedbackBox.textContent = "❌ Access sequence invalid. Internal firewalls remain active.";
+            feedbackBox.style.display = "block";
         }
-    </script>
+    });
+</script>
 </body>
 </html>

@@ -5,54 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Enigma Core | Registration Gate</title>
     <style>
-        body {
-            background: #0d1117;
-            color: #c9d1d9;
-            font-family: monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .gate-container {
-            background: #161b22;
-            border: 1px solid #30363d;
-            padding: 40px;
-            border-radius: 6px;
-            width: 360px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-        h2 { 
-            color: #58a6ff; 
-            margin-top: 0; 
-            border-bottom: 1px solid #30363d; 
-            padding-bottom: 10px; 
-        }
+        body { background: #0d1117; color: #c9d1d9; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .gate-container { background: #161b22; border: 1px solid #30363d; padding: 40px; border-radius: 6px; width: 360px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        h2 { color: #58a6ff; margin-top: 0; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
         .input-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-size: 13px; color: #8b949e; }
-        input {
-            width: 100%;
-            padding: 10px;
-            background: #0d1117;
-            border: 1px solid #30363d;
-            color: #c9d1d9;
-            border-radius: 4px;
-            font-family: monospace;
-            box-sizing: border-box;
-        }
+        input { width: 100%; padding: 10px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; font-family: monospace; box-sizing: border-box; }
         input:focus { border-color: #58a6ff; outline: none; }
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #238636;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            font-family: monospace;
-        }
+        button { width: 100%; padding: 12px; background: #238636; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-family: monospace; }
         button:hover { background: #2ea043; }
         .error-msg { color: #f85149; font-size: 12px; margin-top: 15px; display: none; padding: 10px; background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.2); border-radius: 4px; }
         .success-msg { color: #56d364; font-size: 12px; margin-top: 15px; display: none; padding: 10px; background: rgba(86, 211, 100, 0.1); border: 1px solid rgba(86, 211, 100, 0.2); border-radius: 4px; }
@@ -62,7 +22,6 @@
 
 <div class="gate-container">
     <h2>🔐 ENIGMA GATEWAY</h2>
-    
     <div id="email-panel">
         <div class="input-group">
             <label>ENTER YOUR EMAIL ADDRESS</label>
@@ -70,36 +29,21 @@
         </div>
         <button id="btn-submit">ENTER SYSTEM</button>
     </div>
-
     <div id="error-box" class="error-msg"></div>
     <div id="success-box" class="success-msg"></div>
 </div>
 
 <script>
-    const BACKEND_URL = 'https://cs-riddle-game.onrender.com';
-    
+    const BACKEND_URL = window.location.origin; // Dynamically uses your render domain
     const errorBox = document.getElementById('error-box');
     const successBox = document.getElementById('success-box');
 
-    function showError(msg) {
-        errorBox.textContent = msg;
-        errorBox.style.display = 'block';
-        successBox.style.display = 'none';
-    }
-
-    function showSuccess(msg) {
-        successBox.textContent = msg;
-        successBox.style.display = 'block';
-        errorBox.style.display = 'none';
-    }
+    function showError(msg) { errorBox.textContent = msg; errorBox.style.display = 'block'; successBox.style.display = 'none'; }
+    function showSuccess(msg) { successBox.textContent = msg; successBox.style.display = 'block'; errorBox.style.display = 'none'; }
 
     document.getElementById('btn-submit').addEventListener('click', async () => {
         const email = document.getElementById('player-email').value.trim();
-
-        if (!email) {
-            showError("Please enter your email.");
-            return;
-        }
+        if (!email) { showError("Please enter your email."); return; }
 
         showSuccess("Connecting to system gateway...");
 
@@ -113,10 +57,7 @@
 
             if (data.success && data.redirect) {
                 showSuccess("Access Granted. Initializing levels...");
-                setTimeout(() => {
-                    // Targets the clean structural folder endpoint directory
-                    window.location.href = data.redirect;
-                }, 800);
+                setTimeout(() => { window.location.href = data.redirect; }, 800);
             } else {
                 showError(data.message || "Routing verification failure.");
             }
@@ -125,6 +66,5 @@
         }
     });
 </script>
-
 </body>
 </html>
