@@ -2,59 +2,166 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Sandbox Enigma</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Enigma Core | Registration Gate</title>
     <style>
-        body { background: #0d1117; color: #58a6ff; font-family: monospace; text-align: center; padding: 50px; }
-        .form-container { background: #161b22; border: 1px solid #30363d; padding: 30px; display: inline-block; border-radius: 8px; margin-top: 30px; width: 350px; }
-        input { background: #0d1117; border: 1px solid #30363d; color: #58a6ff; font-family: monospace; padding: 10px; width: 85%; margin-bottom: 15px; text-align: center; border-radius: 4px; }
-        button { background: #238636; color: white; border: none; padding: 12px 25px; font-size: 16px; cursor: pointer; border-radius: 5px; font-family: monospace; font-weight: bold; width: 92%; }
+        body {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .gate-container {
+            background: #161b22;
+            border: 1px solid #30363d;
+            padding: 40px;
+            border-radius: 6px;
+            width: 360px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        h2 { color: #58a6ff; margin-top: 0; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 13px; color: #8b949e; }
+        input {
+            width: 100%;
+            padding: 10px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            border-radius: 4px;
+            font-family: monospace;
+            box-sizing: border-box;
+        }
+        input:focus { border-color: #58a6ff; outline: none; }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: monospace;
+        }
         button:hover { background: #2ea043; }
-        .warning { color: #ff7b72; font-size: 12px; margin-top: 15px; max-width: 350px; margin-left: auto; margin-right: auto; }
+        .error-msg { color: #f85149; font-size: 12px; margin-top: 10px; display: none; }
+        .success-msg { color: #56d364; font-size: 12px; margin-top: 10px; display: none; }
+        .hidden-panel { display: none; }
     </style>
 </head>
 <body>
-    <h1>[ THE SANDBOX ENIGMA ]</h1>
-    <p>A multi-level terminal challenge testing engineering logic and technical deduction deduction parameters.</p>
-    
-    <div class="form-container">
-        <h3>COMPETITOR REGISTRATION</h3>
-        <input type="text" id="playerName" placeholder="Enter Full Name" required>
-        <br>
-        <input type="text" id="playerReg" placeholder="Enter Registration / Roll No" required>
-        <br>
-        <button onclick="initializeSystem()">INITIALIZE SYSTEM</button>
-    </div>
-    <p class="warning">⚠️ Notice: This platform requires advanced local loop and inspection analysis capabilities. Mobile displays are not supported.</p>
 
-    <script>
-        const startAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav');
-        
-        // Block mobile environments immediately
-        if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-            document.querySelector('.form-container').innerHTML = "<h4 style='color:#ff7b72;'>ACCESS CRITICAL FAILURE: Execution requires access to high-tier console utilities (DevTools). Mobile hardware environments are incompatible. Please switch to a Desktop node browser immediately.</h4>";
+<div class="gate-container">
+    <h2>🔐 ENIGMA GATEWAY</h2>
+    
+    <!-- PHASE 1: EMAIL VERIFICATION -->
+    <div id="email-panel">
+        <div class="input-group">
+            <label>FULL NAME</label>
+            <input type="text" id="player-name" placeholder="Enter full name" required>
+        </div>
+        <div class="input-group">
+            <label>REGISTERED EMAIL ADDRESS</label>
+            <input type="email" id="player-email" placeholder="student@college.edu" required>
+        </div>
+        <button id="btn-request-otp">REQUEST ACCESS TOKEN</button>
+    </div>
+
+    <!-- PHASE 2: OTP VERIFICATION (HIDDEN BY DEFAULT) -->
+    <div id="otp-panel" class="hidden-panel">
+        <p style="font-size: 12px; color: #8b949e;">An operational security token has been sent to your registered email address.</p>
+        <div class="input-group">
+            <label>ENTER 6-DIGIT OTP</label>
+            <input type="text" id="otp-code" placeholder="XXXXXX" maxlength="6" style="text-align: center; letter-spacing: 4px; font-size: 18px;">
+        </div>
+        <button id="btn-verify-otp">VERIFY & ENTER SYSTEM</button>
+    </div>
+
+    <div id="error-box" class="error-msg"></div>
+    <div id="success-box" class="success-msg"></div>
+</div>
+
+<script>
+    const emailPanel = document.getElementById('email-panel');
+    const otpPanel = document.getElementById('otp-panel');
+    const errorBox = document.getElementById('error-box');
+    const successBox = document.getElementById('success-box');
+
+    function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.style.display = 'block';
+        successBox.style.display = 'none';
+    }
+
+    function showSuccess(msg) {
+        successBox.textContent = msg;
+        successBox.style.display = 'block';
+        errorBox.style.display = 'none';
+    }
+
+    // Submit Email to check against whitelist and trigger OTP
+    document.getElementById('btn-request-otp').addEventListener('click', async () => {
+        const name = document.getElementById('player-name').value.trim();
+        const email = document.getElementById('player-email').value.trim();
+
+        if (!name || !email) {
+            showError("Please fill out all credentials.");
+            return;
         }
 
-        async function initializeSystem() {
-            const nameVal = document.getElementById('playerName').value.trim();
-            const regVal = document.getElementById('playerReg').value.trim();
-            
-            if(!nameVal || !regVal) {
-                alert("Please fill out your identity parameters before connecting.");
-                return;
-            }
-
-            try { startAudio.play(); } catch(e) {}
-            
-            const res = await fetch('/api/start', {
+        try {
+            const response = await fetch('/api/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: nameVal, regNo: regVal })
+                body: JSON.stringify({ name, email })
             });
-            const data = await res.json();
+            const data = await response.json();
+
             if (data.success) {
-                setTimeout(() => { window.location.href = data.redirect; }, 400);
+                showSuccess("Identity verified. Check your email for the access code.");
+                emailPanel.classList.add('hidden-panel');
+                otpPanel.classList.remove('hidden-panel');
+            } else {
+                showError(data.message || "Access Denied: Unregistered participant.");
             }
+        } catch (err) {
+            showError("Network communication routing fault.");
         }
-    </script>
+    });
+
+    // Submit OTP to unlock Level 1
+    document.getElementById('btn-verify-otp').addEventListener('click', async () => {
+        const email = document.getElementById('player-email').value.trim();
+        const otpCode = document.getElementById('otp-code').value.trim();
+
+        if (!otpCode) {
+            showError("Please enter the security token.");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otpCode })
+            });
+            const data = await response.json();
+
+            if (data.success && data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                showError(data.message || "Invalid security code.");
+            }
+        } catch (err) {
+            showError("Verification processing fault.");
+        }
+    });
+</script>
+
 </body>
 </html>
