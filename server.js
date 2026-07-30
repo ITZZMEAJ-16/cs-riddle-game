@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import basicAuth from 'express-basic-auth';
 import pg from 'pg';
 
 
@@ -180,12 +181,41 @@ app.get('/victory', checkAuth, async (req, res) => {
 });
 
 // --- Admin ---
-app.get('/admin/leaderboard', async (req, res) => {
+// Basic Auth for the admin route
+const adminUsers = {};
+if (process.env.ADMIN_USER && process.env.ADMIN_PASSWORD) {
+    adminUsers[process.env.ADMIN_USER] = process.env.ADMIN_PASSWORD;
+}
+
+const adminAuth = basicAuth({
+    users: adminUsers,
+    challenge: true,
+    realm: 'AdminArea',
+});
+
+app.get('/admin/leaderboard', adminAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM leaderboard ORDER BY id ASC");
-        let rows = result.rows.map((player, idx) => `...`).join(''); // Truncated for brevity
-        res.send(`...`); // Truncated for brevity
+        let rows = result.rows.map((player, idx) => `
+            <tr>
+                <td>${idx + 1}</td>
+                <td>${player.name}</td>
+                <td>${player.reg_no}</td>
+                <td>${player.completion_time}</td>
+            </tr>
+        `).join('');
+
+        res.send(`
+            <body style='background:#0d1117; color:#c9d1d9; font-family:monospace; padding: 20px;'>
+                <h1>Leaderboard</h1>
+                <table border="1" style="width:100%; border-collapse: collapse;">
+                    <tr style="background:#161b22;"><th>Rank</th><th>Name</th><th>Reg No</th><th>Completion Time</th></tr>
+                    ${rows}
+                </table>
+            </body>
+        `);
     } catch (err) {
+        console.error("Leaderboard Error:", err);
         res.status(500).send("Database load error.");
     }
 });
