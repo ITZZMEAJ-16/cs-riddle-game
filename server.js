@@ -37,8 +37,8 @@ async function initDatabase() {
             CREATE TABLE IF NOT EXISTS leaderboard (
                 id SERIAL PRIMARY KEY,
                 name TEXT,
-                reg_no TEXT UNIQUE,
-                completion_time TEXT
+                reg_no TEXT UNIQUE NOT NULL,
+                completion_time TIMESTAMPTZ DEFAULT NOW()
             )
         `);
         console.log("✅ Supabase Cloud Database Connected & Tables Initialized.");
@@ -164,10 +164,9 @@ app.get('/victory', checkAuth, async (req, res) => {
     
     if (currentProgress >= 9 && name) {
         try {
-            const timeString = new Date().toLocaleTimeString();
             await pool.query(
-                "INSERT INTO leaderboard (name, reg_no, completion_time) VALUES ($1, $2, $3) ON CONFLICT (reg_no) DO NOTHING",
-                [name, regNo, timeString]
+                "INSERT INTO leaderboard (name, reg_no) VALUES ($1, $2) ON CONFLICT (reg_no) DO NOTHING",
+                [name, regNo]
             );
             console.log(`💾 Saved ${name} securely to Supabase Cloud.`);
             res.send("<body style='background:#0d1117; color:#56d364; font-family:monospace; text-align:center; padding:100px;'><h1>🎉 CONGRATULATIONS CONQUEROR!</h1><p style='color:#c9d1d9;'>Your run has been permanently logged in the database cloud.</p></body>");
@@ -195,13 +194,13 @@ const adminAuth = basicAuth({
 
 app.get('/admin/leaderboard', adminAuth, async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM leaderboard ORDER BY id ASC");
+        const result = await pool.query("SELECT name, reg_no, to_char(completion_time, 'YYYY-MM-DD HH24:MI:SS') as time FROM leaderboard ORDER BY completion_time ASC");
         let rows = result.rows.map((player, idx) => `
             <tr>
                 <td>${idx + 1}</td>
                 <td>${player.name}</td>
                 <td>${player.reg_no}</td>
-                <td>${player.completion_time}</td>
+                <td>${player.time}</td>
             </tr>
         `).join('');
 
