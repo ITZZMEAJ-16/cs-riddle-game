@@ -14,6 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1); // Trust proxy headers
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
@@ -83,7 +84,7 @@ const checkProgress = (req, res, next) => {
     if (match) {
         const requestedLevel = parseInt(match[1], 10);
         const currentProgress = req.signedCookies.player_level ? parseInt(req.signedCookies.player_level, 10) : 0;
-        if (currentProgress === 0) return res.redirect('/');
+        if (currentProgress === 0) return res.redirect('/index.html');
         if (requestedLevel > currentProgress) return res.status(403).send("Access Denied");
     }
     next();
@@ -91,7 +92,7 @@ const checkProgress = (req, res, next) => {
 
 const checkAuth = (req, res, next) => {
     if (!req.signedCookies.user_id) {
-        return res.redirect('/');
+        return res.redirect('/index.html');
     }
     next();
 }
@@ -111,7 +112,7 @@ app.post('/api/register', async (req, res) => {
             [email, hashedPassword, verificationToken, name, regNo]
         );
 
-        const verificationLink = `http://localhost:${PORT}/api/verify?token=${verificationToken}`;
+        const verificationLink = `${req.protocol}://${req.get('host')}/api/verify?token=${verificationToken}`;
         
         await transporter.sendMail({
             from: process.env.EMAIL_FROM,
@@ -241,7 +242,6 @@ app.get('/admin/leaderboard', async (req, res) => {
     }
 });
 
-app.use(checkAuth);
 app.use(checkProgress);
 app.use(express.static(path.join(__dirname, 'public')));
 
