@@ -56,7 +56,6 @@
         button:hover { background: #2ea043; }
         .error-msg { color: #f85149; font-size: 12px; margin-top: 15px; display: none; padding: 10px; background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.2); border-radius: 4px; }
         .success-msg { color: #56d364; font-size: 12px; margin-top: 15px; display: none; padding: 10px; background: rgba(86, 211, 100, 0.1); border: 1px solid rgba(86, 211, 100, 0.2); border-radius: 4px; }
-        .hidden-panel { display: none; }
     </style>
 </head>
 <body>
@@ -64,27 +63,12 @@
 <div class="gate-container">
     <h2>🔐 ENIGMA GATEWAY</h2>
     
-    <!-- PHASE 1: EMAIL VERIFICATION -->
     <div id="email-panel">
         <div class="input-group">
-            <label>FULL NAME</label>
-            <input type="text" id="player-name" placeholder="Enter full name" required>
+            <label>ENTER YOUR EMAIL ADDRESS</label>
+            <input type="email" id="player-email" placeholder="player@example.com" required>
         </div>
-        <div class="input-group">
-            <label>REGISTERED EMAIL ADDRESS</label>
-            <input type="email" id="player-email" placeholder="student@college.edu" required>
-        </div>
-        <button id="btn-request-otp">REQUEST ACCESS TOKEN</button>
-    </div>
-
-    <!-- PHASE 2: OTP VERIFICATION (HIDDEN BY DEFAULT) -->
-    <div id="otp-panel" class="hidden-panel">
-        <p style="font-size: 12px; color: #8b949e; line-height: 1.4;">An operational security token has been dispatched to your registered email address.</p>
-        <div class="input-group">
-            <label>ENTER 6-DIGIT OTP</label>
-            <input type="text" id="otp-code" placeholder="XXXXXX" maxlength="6" style="text-align: center; letter-spacing: 4px; font-size: 18px;">
-        </div>
-        <button id="btn-verify-otp">VERIFY & ENTER SYSTEM</button>
+        <button id="btn-submit">ENTER SYSTEM</button>
     </div>
 
     <div id="error-box" class="error-msg"></div>
@@ -94,8 +78,6 @@
 <script>
     const BACKEND_URL = 'https://cs-riddle-game.onrender.com';
     
-    const emailPanel = document.getElementById('email-panel');
-    const otpPanel = document.getElementById('otp-panel');
     const errorBox = document.getElementById('error-box');
     const successBox = document.getElementById('success-box');
 
@@ -111,69 +93,34 @@
         errorBox.style.display = 'none';
     }
 
-    // Phase 1: Submit Identity Parameters
-    document.getElementById('btn-request-otp').addEventListener('click', async () => {
-        const name = document.getElementById('player-name').value.trim();
+    document.getElementById('btn-submit').addEventListener('click', async () => {
         const email = document.getElementById('player-email').value.trim();
 
-        if (!name || !email) {
-            showError("Please fill out all credentials.");
+        if (!email) {
+            showError("Please enter your email.");
             return;
         }
 
-        showSuccess("Verifying identity with cluster...");
+        showSuccess("Connecting to system gateway...");
 
         try {
             const response = await fetch(`${BACKEND_URL}/api/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email })
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                showSuccess("Identity verified. Check your email for the access token.");
-                emailPanel.classList.add('hidden-panel');
-                otpPanel.classList.remove('hidden-panel');
-                document.getElementById('otp-code').focus();
-            } else {
-                showError(data.message || "Access Denied: Unregistered participant.");
-            }
-        } catch (err) {
-            showError("Internal cloud communication routing fault.");
-        }
-    });
-
-    // Phase 2: Verify Access Token
-    document.getElementById('btn-verify-otp').addEventListener('click', async () => {
-        const email = document.getElementById('player-email').value.trim();
-        const otpCode = document.getElementById('otp-code').value.trim();
-
-        if (!otpCode) {
-            showError("Please enter the security token.");
-            return;
-        }
-
-        showSuccess("Validating token alignment...");
-
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/verify-otp`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otpCode })
+                body: JSON.stringify({ email })
             });
             const data = await response.json();
 
             if (data.success && data.redirect) {
-                showSuccess("Access Granted. Redirecting...");
+                showSuccess("Access Granted. Initializing levels...");
                 setTimeout(() => {
                     window.location.href = data.redirect;
-                }, 1000);
+                }, 800);
             } else {
-                showError(data.message || "Invalid security code reference.");
+                showError(data.message || "Routing verification failure.");
             }
         } catch (err) {
-            showError("Verification processing system fault.");
+            showError("System link fault. Verify server connection status.");
         }
     });
 </script>
