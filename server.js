@@ -100,7 +100,7 @@ const checkProgress = (req, res, next) => {
 // --- HARDCODED CREDENTIALS FOR MULTIPLE USERS ---
 // You can add more participants to this list
 const participants = [
-    { email: "user1@example.com", password: "password1", name: "Participant One", regNo: "001" },
+    { email: "adhijeevan92@gmail.com", password: "password1", name: "Participant One", regNo: "001" },
     { email: "user2@example.com", password: "password2", name: "Participant Two", regNo: "002" },
     { email: "user3@example.com", password: "password3", name: "Participant Three", regNo: "003" }
 ];
