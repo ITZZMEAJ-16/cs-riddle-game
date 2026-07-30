@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Level 1 - Cryptographic Gateway</title>
+    <style>
+        body { background: #0b1a10; color: #39ff14; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #050f08; border: 1px solid #39ff14; padding: 40px; border-radius: 8px; text-align: center; max-width: 450px; transition: transform 0.1s ease; }
+        input { background: #000; border: 1px solid #39ff14; color: #39ff14; padding: 10px; text-align: center; width: 80%; margin-bottom: 15px; }
+        button { background: #39ff14; color: black; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Level 1: The Cryptographic Gateway</h2>
+        <p>Decode this radix-64 representation architecture payload string to clear authorization:</p>
+        <code style="color: #a2ffa2; font-size: 18px;">NDgxNTE2MjM0Mg==</code>
+        <br><br>
+        <form onsubmit="submitLevel(event)">
+            <input type="text" id="ansInput" placeholder="Enter numerical sequence">
+            <br>
+            <button type="submit">AUTHORIZE LINK</button>
+        </form>
+    </div>
+
+    <script>
+        function playSynthSound(type) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return;
+            const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            if (type === 'success') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            } else {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, ctx.currentTime); osc.frequency.linearRampToValueAtTime(70, ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+            }
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+        }
+
+        async function submitLevel(e) {
+            e.preventDefault();
+            const val = document.getElementById('ansInput').value;
+            const res = await fetch('/api/submit-answer', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer: val })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                playSynthSound('success');
+                setTimeout(() => { window.location.href = data.nextLevel; }, 500);
+            } else {
+                playSynthSound('fail');
+                const card = document.querySelector('.card');
+                card.style.transform = 'translateX(10px)';
+                setTimeout(() => { card.style.transform = 'translateX(-10px)'; }, 50);
+                setTimeout(() => { card.style.transform = 'translateX(0)'; }, 100);
+            }
+        }
+    </script>
+</body>
+</html>

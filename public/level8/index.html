@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Level 8 - Shell Environment Terminal</title>
+    <style>
+        body { background: #050505; color: #00ff00; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #000; border: 1px solid #1f3a22; padding: 40px; border-radius: 8px; text-align: center; width: 90%; max-width: 550px; }
+        .terminal { background: #000; border: 1px solid #1f3a22; padding: 20px; border-radius: 5px; min-height: 250px; text-align: left; box-sizing: border-box; }
+        .terminal input { background: transparent; border: none; color: #00ff00; font-family: monospace; font-size: 16px; width: 60%; outline: none; margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Level 8: Mainframe Root Execution Layer</h2>
+        <p style="margin-bottom: 25px; color: #8b949e;">Type interactive commands (<code>ls</code> or <code>cat [filename]</code>) to extract root flags.</p>
+        
+        <div class="terminal" onclick="document.getElementById('cmd').focus()">
+            <div id="output">SYSTEM LOG: Shell access established. Type "ls" to explore root vectors...<br><br></div>
+            <span>root@enigma:~# </span><input type="text" id="cmd" onkeydown="runCommand(event)" autofocus>
+        </div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        function playSynthSound(type) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return;
+            const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            if (type === 'success') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            } else {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, ctx.currentTime); osc.frequency.linearRampToValueAtTime(70, ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+            }
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+        }
+        
+        async function runCommand(e) {
+            if (e.key === 'Enter') {
+                const commandText = e.target.value.trim();
+                const lowerCmd = commandText.toLowerCase();
+                output.innerHTML += `<span>root@enigma:~# ${commandText}</span><br>`;
+                
+                if (lowerCmd === 'ls') {
+                    output.innerHTML += `sys_config.log &nbsp;&nbsp; root_authorization_key.txt &nbsp;&nbsp; kernel_dump.bin<br><br>`;
+                } else if (lowerCmd === 'cat root_authorization_key.txt') {
+                    output.innerHTML += `ACCESS VECTOR FOUND. Core file parameters indicate the secret root access token is: <strong>root_access_granted</strong>.<br>Execute validation verification loop command: submit root_access_granted<br><br>`;
+                } else if (lowerCmd.startsWith('submit ')) {
+                    const finalKey = commandText.substring(7).trim();
+                    const res = await fetch('/api/submit-answer', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ answer: finalKey })
+                    });
+                    const data = await res.json();
+                    if(data.success) {
+                        playSynthSound('success');
+                        setTimeout(() => { window.location.href = data.nextLevel; }, 500);
+                    } else {
+                        playSynthSound('fail');
+                        output.innerHTML += `<span style='color:#ff6b6b;'>Verification Loop Failed: Invalid Core Key Flag.</span><br><br>`;
+                    }
+                } else {
+                    playSynthSound('fail');
+                    output.innerHTML += `bash: command not found: ${commandText}. Try "ls"<br><br>`;
+                }
+                e.target.value = '';
+                document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Level 3 - Privilege Escalation</title>
+    <style>
+        body { background: #1a0f1c; color: #d372eb; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #25142a; border: 1px solid #5c2b6d; padding: 40px; border-radius: 8px; text-align: center; max-width: 450px; }
+        button { background: #5c2b6d; color: white; border: none; padding: 10px 20px; cursor: pointer; font-family: monospace; }
+        input { background: #222; border: 1px solid #5c2b6d; color: white; padding: 10px; margin-bottom: 15px; text-align: center;}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Level 3: Access Control Management</h2>
+        <p>System status: <strong>Guest Tier</strong>.</p>
+        <p>Only an active authoritative context (<code>system_role = admin</code>) can request the validation key flag.</p>
+        <button onclick="requestFlag()">REQUEST AUTHORIZED FLAG</button>
+        <div id="output" style="margin-top:20px;"></div>
+    </div>
+
+    <script>
+        function playSynthSound(type) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return;
+            const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            if (type === 'success') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            } else {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, ctx.currentTime); osc.frequency.linearRampToValueAtTime(70, ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+            }
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+        }
+
+        if (!document.cookie.includes("system_role")) {
+            document.cookie = "system_role=guest; path=/";
+        }
+
+        function requestFlag() {
+            const cookies = Object.fromEntries(document.cookie.split('; ').map(c => c.split('=')));
+            if (cookies.system_role === 'admin') {
+                playSynthSound('success');
+                document.getElementById('output').innerHTML = `
+                    <p style="color:#d372eb">Access Granted. Key: <strong>admin_override</strong>.</p>
+                    <input type='text' id='finalAns' placeholder='Enter key'><br>
+                    <button onclick='submitFinal(document.getElementById("finalAns").value)'>Submit Key</button>
+                `;
+            } else {
+                playSynthSound('fail');
+                document.getElementById('output').innerHTML = `<span style="color:#ff6b6b">Access Denied: Lacks admin cookie context. Check Application Cookies.</span>`;
+            }
+        }
+
+        async function submitFinal(val) {
+            const res = await fetch('/api/submit-answer', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer: val })
+            });
+            const data = await res.json();
+            if(data.success) {
+                playSynthSound('success');
+                setTimeout(() => { window.location.href = data.nextLevel; }, 500);
+            } else {
+                playSynthSound('fail');
+                alert(data.message);
+            }
+        }
+    </script>
+</body>
+</html>
