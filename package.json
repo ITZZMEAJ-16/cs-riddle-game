@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Secure registration gateway for code breaking events",
   "main": "server.js",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "start": "node --dns-result-order=ipv4first server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
