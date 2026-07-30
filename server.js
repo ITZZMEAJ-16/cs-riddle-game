@@ -27,11 +27,11 @@ app.post('/api/start', (req, res) => {
         return res.status(400).json({ success: false, message: "Please provide a valid email address." });
     }
 
-    // Direct open access routing logic
+    // Return the clean directory path for Level 1
     return res.json({ 
         success: true, 
         message: "Access granted. Welcome to the system.",
-        redirect: '/level1.html' 
+        redirect: '/level1/' 
     });
 });
 

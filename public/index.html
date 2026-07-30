@@ -114,6 +114,7 @@
             if (data.success && data.redirect) {
                 showSuccess("Access Granted. Initializing levels...");
                 setTimeout(() => {
+                    // Targets the clean structural folder endpoint directory
                     window.location.href = data.redirect;
                 }, 800);
             } else {
