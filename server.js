@@ -33,6 +33,10 @@ const pool = new pg.Pool({
 
 async function initDatabase() {
     try {
+        // Drop the table to ensure a clean start, fixing any schema issues.
+        // This is safe to do before the competition starts.
+        await pool.query(`DROP TABLE IF EXISTS leaderboard;`);
+
         await pool.query(`
             CREATE TABLE IF NOT EXISTS leaderboard (
                 id SERIAL PRIMARY KEY,
@@ -40,10 +44,6 @@ async function initDatabase() {
                 reg_no TEXT UNIQUE NOT NULL,
                 completion_time TIMESTAMPTZ DEFAULT NOW()
             )
-        `);
-        // Ensure columns exist, useful if table was created with an older schema
-        await pool.query(`
-            ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS name TEXT, ADD COLUMN IF NOT EXISTS reg_no TEXT UNIQUE, ADD COLUMN IF NOT EXISTS completion_time TIMESTAMPTZ DEFAULT NOW();
         `);
         console.log("✅ Supabase Cloud Database Connected & Tables Initialized.");
     } catch (err) {
