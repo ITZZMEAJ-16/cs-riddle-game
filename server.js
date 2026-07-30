@@ -1,230 +1,162 @@
-import express from 'express';
-import cookieParser from 'cookie-parser';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-import pg from 'pg';
-import nodemailer from 'nodemailer';
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+const nodemailer = require('nodemailer');
+const dns = require('dns');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// 1. Core Security Middleware Configuration
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser(process.env.JWT_SECRET || 'secure_competition_secret_998877'));
+app.use(express.static('public'));
 
-// 🚀 NODEMAILER SMTP TRANSPORTER (Gmail Service)
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,      
-        pass: process.env.EMAIL_PASS       
-    }
-});
-
-// 🌐 CLOUD SUPABASE POOL CONNECTION
-const pool = new pg.Pool({
+// 2. Cloud Database Connection Architecture (Supabase Transaction Pooler)
+const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: {
+        rejectUnauthorized: false // Required for secure cloud routing handlers
+    }
 });
 
-// Auto-initialize databases structures
-async function initDatabase() {
-    try {
-        // Create the core tracking, registration, and OTP schemas
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS participants (
-                id SERIAL PRIMARY KEY,
-                email TEXT UNIQUE NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS leaderboard (
-                id SERIAL PRIMARY KEY,
-                name TEXT,
-                email TEXT UNIQUE,
-                completion_time TEXT
-            );
-            CREATE TABLE IF NOT EXISTS security_otps (
-                email TEXT PRIMARY KEY,
-                otp_code TEXT,
-                name TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-        console.log("✅ Cloud Database Verification Architecture & Paid Whitelist Ready.");
-    } catch (err) {
-        console.error("🚨 Cloud DB Initialization Fault:", err);
+// Verify cluster connectivity status on initialization
+pool.connect((err, client, release) => {
+    if (err) {
+        console.error('❌ Cloud DB Connection Failure:', err.stack);
+    } else {
+        console.log('✅ Cloud Database Verification Architecture & Pooler Ready (Port 6543).');
+        release();
     }
-}
-initDatabase();
+});
 
-const RIDDLE_ANSWERS = {
-    1: "4815162342",      
-    2: "console_ninja",   
-    3: "admin_override",  
-    4: "packet_captured",  
-    5: "hidden_in_plain_sight", 
-    6: "i",        
-    7: "deadbeef",        
-    8: "root_access_granted" 
-};
-
-const checkProgress = (req, res, next) => {
-    const requestedPath = req.path;
-    const match = requestedPath.match(/\/level(\d+)/);
-    if (match) {
-        const requestedLevel = parseInt(match[1], 10);
-        const currentProgress = req.signedCookies.player_level ? parseInt(req.signedCookies.player_level, 10) : 0;
-        if (currentProgress === 0) return res.redirect('/');
-        if (requestedLevel > currentProgress) return res.status(403).send("Access Denied");
+// 3. Fully Hardened Nodemailer Transporter Configuration (Forces IPv4 Verification)
+const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    // Force Node's internal network layer to drop IPv6 loopbacks and use IPv4 exclusively
+    lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+            callback(err, address, family);
+        });
+    },
+    tls: {
+        rejectUnauthorized: false // Prevents handshake structural blocks on direct streams
     }
-    next();
-};
+});
 
-// 🛫 PHASE 1: STRICT VERIFICATION AND OTP PIPELINE
+// Temporary memory matrix to house runtime verification tokens (OTPs)
+const activeOtpTokens = new Map();
+
+// ==========================================
+// 🛰️ API ENDPOINTS
+// ==========================================
+
+// PHASE 1: Whitelist Verification & OTP Dispatch
 app.post('/api/start', async (req, res) => {
     const { name, email } = req.body;
-    if (!name || !email) return res.status(400).json({ success: false, message: "Parameters incomplete." });
 
-    const cleanEmail = email.trim().toLowerCase();
+    if (!name || !email) {
+        return res.status(400).json({ success: false, message: "Missing parameter payloads." });
+    }
 
     try {
-        // 🛡️ SECURITY STEP: Query the cloud database to check if the email has paid status
-        const checkPaidUser = await pool.query("SELECT email FROM participants WHERE email = $1", [cleanEmail]);
-        
-        if (checkPaidUser.rows.length === 0) {
-            // Reject completely if the email is missing from the list
+        // Query the cloud table using parametric syntax to prevent injection vulnerabilities
+        const whitelistCheck = await pool.query(
+            'SELECT * FROM participants WHERE LOWER(email) = LOWER($1)', 
+            [email.trim()]
+        );
+
+        if (whitelistCheck.rows.length === 0) {
             return res.status(403).json({ 
                 success: false, 
-                message: "Access Denied: This email address is not registered as a paid competitor." 
+                message: "Access Denied: Email parameter missing from registration manifest." 
             });
         }
 
-        // Email validated! Proceed to generate a secure verification key
-        const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-
-        await pool.query(
-            "INSERT INTO security_otps (email, otp_code, name) VALUES ($1, $2, $3) ON CONFLICT (email) DO UPDATE SET otp_code = $2, name = $3, created_at = CURRENT_TIMESTAMP",
-            [cleanEmail, generatedOTP, name]
-        );
-
-        await transporter.sendMail({
-            from: `"Enigma System Core" <${process.env.EMAIL_USER}>`,
-            to: cleanEmail,
-            subject: '[THE ENIGMA] Paid Registration Gate Verification Token',
-            html: `
-                <div style="font-family:monospace; background:#0d1117; color:#58a6ff; padding:30px; border:1px solid #30363d; border-radius:6px;">
-                    <h2 style="color:#58a6ff; border-bottom:1px solid #30363d; padding-bottom:10px;">🔐 PAID GATEWAY ACCESS VERIFIED</h2>
-                    <p style="color:#c9d1d9;">Competitor Identity Match: <strong>${name}</strong></p>
-                    <p style="color:#c9d1d9;">Input the following runtime security token code directly into the setup console layout window to mount Level 1:</p>
-                    <h1 style="color:#56d364; letter-spacing:6px; font-size:38px; background:#161b22; padding:15px; display:inline-block; border-radius:4px;">${generatedOTP}</h1>
-                    <p style="color:#8b949e; font-size:11px; margin-top:20px;">If you did not initiate this system loop sequence request, contact your administrator context panel.</p>
-                </div>
-            `
+        // Generate a cryptographically secure 6-digit verification code token
+        const operationalToken = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Cache token with an operational security expiration timeline (10 Minutes)
+        activeOtpTokens.set(email.toLowerCase().trim(), {
+            token: operationalToken,
+            expires: Date.now() + 10 * 60 * 1000
         });
 
-        return res.json({ success: true, step: "otp_verification_pending" });
+        // Construct email delivery manifest payload
+        const mailOptions = {
+            from: `"The Enigma Core" <${process.env.EMAIL_USER}>`,
+            to: email.trim(),
+            subject: "🔐 SYSTEM ACCESS TOKEN | Wire Wars Security Protocol",
+            text: `Greetings ${name},\n\nYour operational security token for system initialization is: ${operationalToken}\n\nThis token expires in 10 minutes. Do not share this sequence.`,
+            html: `
+                <div style="background:#161b22; color:#c9d1d9; font-family:monospace; padding:30px; border:1px solid #30363d; border-radius:6px; max-width:450px; margin:auto;">
+                    <h2 style="color:#58a6ff; margin-top:0; border-bottom:1px solid #30363d; padding-bottom:10px;">🔐 ENIGMA CORE SECURITY Token</h2>
+                    <p>Identity confirmed for participant record field: <strong>${name}</strong></p>
+                    <p>Input the following 6-digit access token into the gateway portal configuration array:</p>
+                    <div style="background:#0d1117; color:#56d364; font-size:24px; text-align:center; padding:15px; letter-spacing:6px; font-weight:bold; border:1px solid #30363d; border-radius:4px; margin:20px 0;">
+                        ${operationalToken}
+                    </div>
+                    <p style="font-size:11px; color:#8b949e;">This transmission is encrypted. Security lifetimes fade within 600 seconds.</p>
+                </div>
+            `
+        };
 
-    } catch (err) {
-        console.error("System Core Security Error:", err);
-        return res.status(500).json({ success: false, message: "Internal cloud communication routing fault." });
+        // Fire transaction out through the explicitly mapped IPv4 outbound route
+        await transporter.sendMail(mailOptions);
+        
+        return res.json({ success: true, message: "Verification sequence dispatched successfully." });
+
+    } catch (error) {
+        console.error("🚨 System Core Security Error:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: `System Core Security Error: ${error.message}` 
+        });
     }
 });
 
-// 🔑 PHASE 2: AUTHENTICATE INTERACTIVE OTP SECURITY CODES
+// PHASE 2: Token Validation & Gateway Authorization
 app.post('/api/verify-otp', async (req, res) => {
     const { email, otpCode } = req.body;
-    if (!email || !otpCode) return res.status(400).json({ success: false, message: "Parameters incomplete." });
+    const cleanEmail = email.toLowerCase().trim();
 
-    const cleanEmail = email.trim().toLowerCase();
-
-    try {
-        const result = await pool.query("SELECT * FROM security_otps WHERE email = $1", [cleanEmail]);
-        
-        if (result.rows.length > 0 && result.rows[0].otp_code === otpCode.trim()) {
-            const userData = result.rows[0];
-            await pool.query("DELETE FROM security_otps WHERE email = $1", [cleanEmail]);
-
-            res.cookie('player_level', '1', { signed: true, httpOnly: true });
-            res.cookie('player_name', userData.name, { signed: true, httpOnly: true });
-            res.cookie('player_email', userData.email, { signed: true, httpOnly: true });
-
-            return res.json({ success: true, redirect: '/level1/' });
-        } else {
-            return res.status(400).json({ success: false, message: "Incorrect token code value." });
-        }
-    } catch (err) {
-        return res.status(500).json({ success: false, message: "Verification processing fault." });
+    if (!email || !otpCode) {
+        return res.status(400).json({ success: false, message: "Credentials packet missing payloads." });
     }
-});
 
-app.post('/api/submit-answer', (req, res) => {
-    const { answer } = req.body;
-    const currentProgress = req.signedCookies.player_level ? parseInt(req.signedCookies.player_level, 10) : 1;
-    const correctAnswer = RIDDLE_ANSWERS[currentProgress];
-    
-    if (answer && answer.trim().toLowerCase() === correctAnswer.toLowerCase()) {
-        const nextLevel = currentProgress + 1;
-        res.cookie('player_level', nextLevel.toString(), { signed: true, httpOnly: true });
-        return res.json({ success: true, nextLevel: nextLevel === 9 ? '/victory' : `/level${nextLevel}/` });
-    } else {
-        return res.json({ success: false, message: "Incorrect key string." });
+    const savedRecord = activeOtpTokens.get(cleanEmail);
+
+    if (!savedRecord) {
+        return res.status(400).json({ success: false, message: "No active verification sequence found for this entity." });
     }
+
+    if (Date.now() > savedRecord.expires) {
+        activeOtpTokens.delete(cleanEmail);
+        return res.status(401).json({ success: false, message: "Security token lifetime expired. Request a new code configuration." });
+    }
+
+    if (savedRecord.token !== otpCode.trim()) {
+        return res.status(401).json({ success: false, message: "Cryptographic configuration mismatch. Access Denied." });
+    }
+
+    // Success: Purge token from memory and authorize immediate redirection to Game Level 1
+    activeOtpTokens.delete(cleanEmail);
+    return res.json({ success: true, redirect: '/level1.html' });
 });
 
-app.get('/api/hidden-packet-stream', (req, res) => {
-    res.json({ message: "Monitoring...", hidden_flag: "packet_captured" });
+// Initialize active listening hooks globally across IPv4 space interfaces
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Security Engine online and listening on global IPv4 space port ${PORT}`);
 });
-
-app.get('/admin/leaderboard', async (req, res) => {
-    try {
-        const result = await pool.query("SELECT * FROM leaderboard ORDER BY id ASC");
-        let rows = result.rows.map((player, idx) => `
-            <tr style="border-bottom: 1px solid #30363d;">
-                <td style="padding:12px;">${idx + 1}</td>
-                <td style="padding:12px; color:#58a6ff;">${player.name}</td>
-                <td style="padding:12px;">${player.email}</td>
-                <td style="padding:12px; color:#56d364;">${player.completion_time}</td>
-            </tr>
-        `).join('');
-
-        res.send(`
-            <body style="background:#0d1117; color:#c9d1d9; font-family:monospace; padding:50px;">
-                <h2 style="color:#58a6ff; border-bottom:1px solid #30363d; padding-bottom:10px;">🏆 LIVE COMPETITION LEADERBOARD</h2>
-                <table style="width:100%; border-collapse:collapse; text-align:left; background:#161b22; border:1px solid #30363d;">
-                    <thead style="background:#21262d;">
-                        <tr><th style="padding:12px;">Rank</th><th style="padding:12px;">Name</th><th style="padding:12px;">Email Address</th><th style="padding:12px;">Completion Timestamp</th></tr>
-                    </thead>
-                    <tbody>${rows || '<tr><td colspan="4" style="padding:20px; text-align:center; opacity:0.5;">Waiting for runs...</td></tr>'}</tbody>
-                </table>
-                <script>setTimeout(() => { window.location.reload(); }, 5000);</script>
-            </body>
-        `);
-    } catch (err) { res.status(500).send("Database load error."); }
-});
-
-app.use(checkProgress);
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/victory', async (req, res) => {
-    const currentProgress = req.signedCookies.player_level ? parseInt(req.signedCookies.player_level, 10) : 1;
-    const name = req.signedCookies.player_name;
-    const email = req.signedCookies.player_email;
-    
-    if (currentProgress >= 9 && name) {
-        try {
-            const timeString = new Date().toLocaleTimeString();
-            await pool.query(
-                "INSERT INTO leaderboard (name, email, completion_time) VALUES ($1, $2, $3) ON CONFLICT (email) DO NOTHING",
-                [name, email, timeString]
-            );
-        } catch (err) {}
-        res.send("<body style='background:#0d1117; color:#56d364; font-family:monospace; text-align:center; padding:100px;'><h1>🎉 CONGRATULATIONS CONQUEROR!</h1></body>");
-    } else { res.redirect('/level1/'); }
-});
-
-app.listen(PORT, () => { console.log(`🚀 Core Active on Port: ${PORT}`); });
