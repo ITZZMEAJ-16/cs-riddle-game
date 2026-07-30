@@ -13,7 +13,7 @@
 <body>
     <div class="card">
         <h2>Level 8: Mainframe Root Execution Layer</h2>
-        <p style="margin-bottom: 25px; color: #8b949e;">Type interactive commands (<code>ls</code> or <code>cat [filename]</code>) to extract root flags.</p>
+        <p style="margin-bottom: 25px; color: #8b949e;">Type interactive commands (<code>ls</code> or <code>cat [filename]</code>) to extract the root key flags.</p>
         
         <div class="terminal" onclick="document.getElementById('cmd').focus()">
             <div id="output">SYSTEM LOG: Shell access established. Type "ls" to explore root vectors...<br><br></div>
@@ -23,20 +23,10 @@
 
     <script>
         const output = document.getElementById('output');
-        
-        function playSynthSound(type) {
-            const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return;
-            const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            if (type === 'success') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            } else {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, ctx.currentTime); osc.frequency.linearRampToValueAtTime(70, ctx.currentTime + 0.25);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-            }
-            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
-        }
+        const successAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav');
+        const failAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
+
+        document.addEventListener('keydown', () => { successAudio.load(); failAudio.load(); }, { once: true });
         
         async function runCommand(e) {
             if (e.key === 'Enter') {
@@ -47,7 +37,7 @@
                 if (lowerCmd === 'ls') {
                     output.innerHTML += `sys_config.log &nbsp;&nbsp; root_authorization_key.txt &nbsp;&nbsp; kernel_dump.bin<br><br>`;
                 } else if (lowerCmd === 'cat root_authorization_key.txt') {
-                    output.innerHTML += `ACCESS VECTOR FOUND. Core file parameters indicate the secret root access token is: <strong>root_access_granted</strong>.<br>Execute validation verification loop command: submit root_access_granted<br><br>`;
+                    output.innerHTML += `ACCESS VECTOR FOUND. Key is: root_access_granted.<br>Submit via command: submit root_access_granted<br><br>`;
                 } else if (lowerCmd.startsWith('submit ')) {
                     const finalKey = commandText.substring(7).trim();
                     const res = await fetch('/api/submit-answer', {
@@ -56,14 +46,14 @@
                     });
                     const data = await res.json();
                     if(data.success) {
-                        playSynthSound('success');
-                        setTimeout(() => { window.location.href = data.nextLevel; }, 500);
+                        successAudio.play().catch(p => console.log(p));
+                        setTimeout(() => { window.location.href = data.nextLevel; }, 600);
                     } else {
-                        playSynthSound('fail');
+                        failAudio.play().catch(p => console.log(p));
                         output.innerHTML += `<span style='color:#ff6b6b;'>Verification Loop Failed: Invalid Core Key Flag.</span><br><br>`;
                     }
                 } else {
-                    playSynthSound('fail');
+                    failAudio.play().catch(p => console.log(p));
                     output.innerHTML += `bash: command not found: ${commandText}. Try "ls"<br><br>`;
                 }
                 e.target.value = '';

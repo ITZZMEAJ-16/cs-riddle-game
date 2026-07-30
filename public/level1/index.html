@@ -2,66 +2,53 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enigma Core | Level 1</title>
+    <title>Level 1 - The Cryptographic Gateway</title>
     <style>
-        body { background: #0d1117; color: #c9d1d9; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .level-container { background: #161b22; border: 1px solid #30363d; padding: 40px; border-radius: 6px; width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        h2 { color: #58a6ff; margin-top: 0; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-        .riddle-box { background: #0d1117; padding: 15px; border-left: 4px solid #58a6ff; margin-bottom: 20px; font-size: 14px; line-height: 1.5; }
-        input { width: 100%; padding: 10px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; font-family: monospace; box-sizing: border-box; margin-bottom: 20px; }
-        input:focus { border-color: #58a6ff; outline: none; }
-        button { width: 100%; padding: 12px; background: #238636; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-family: monospace; }
-        button:hover { background: #2ea043; }
-        .feedback { font-size: 13px; margin-top: 15px; display: none; padding: 10px; border-radius: 4px; }
-        .error { color: #f85149; background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.2); }
-        .success { color: #56d364; background: rgba(86, 211, 100, 0.1); border: 1px solid rgba(86, 211, 100, 0.2); }
+        body { background: #0b1a10; color: #39ff14; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #050f08; border: 1px solid #39ff14; padding: 40px; border-radius: 8px; text-align: center; max-width: 450px; transition: transform 0.1s ease; }
+        input { background: #000; border: 1px solid #39ff14; color: #39ff14; padding: 10px; text-align: center; width: 80%; margin-bottom: 15px; }
+        button { background: #39ff14; color: black; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-
-<div class="level-container">
-    <h2>🧩 PHASE I: THE INITIAL CODES</h2>
-    <div class="riddle-box">
-        <!-- Replace this placeholder text with your actual Level 1 Riddle -->
-        I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?
+    <div class="card">
+        <h2>Level 1: The Cryptographic Gateway</h2>
+        <p>Decode this radix-64 representation architecture payload string to clear authorization:</p>
+        <code style="color: #a2ffa2; font-size: 18px;">NDgxNTE2MjM0Mg==</code>
+        <br><br>
+        <form onsubmit="submitLevel(event)">
+            <input type="text" id="ansInput" placeholder="Enter numerical sequence">
+            <br>
+            <button type="submit">AUTHORIZE LINK</button>
+        </form>
     </div>
-    
-    <input type="text" id="answer-input" placeholder="Type your answer here..." autocomplete="off">
-    <button id="btn-submit">SUBMIT DECRYPTION KEY</button>
-    
-    <div id="feedback-box" class="feedback"></div>
-</div>
 
-<script>
-    const feedbackBox = document.getElementById('feedback-box');
+    <script>
+        const successAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav');
+        const failAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
 
-    document.getElementById('btn-submit').addEventListener('click', () => {
-        const answer = document.getElementById('answer-input').value.trim().toLowerCase();
-        
-        if (!answer) {
-            feedbackBox.className = "feedback error";
-            feedbackBox.textContent = "Input buffer clear. Please specify a decryption answer string.";
-            feedbackBox.style.display = "block";
-            return;
+        document.addEventListener('keydown', () => { successAudio.load(); failAudio.load(); }, { once: true });
+
+        async function submitLevel(e) {
+            e.preventDefault();
+            const val = document.getElementById('ansInput').value;
+            const res = await fetch('/api/submit-answer', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer: val })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                successAudio.play().catch(p => console.log(p));
+                setTimeout(() => { window.location.href = data.nextLevel; }, 600);
+            } else {
+                failAudio.play().catch(p => console.log(p));
+                const card = document.querySelector('.card');
+                card.style.transform = 'translateX(10px)';
+                setTimeout(() => { card.style.transform = 'translateX(-10px)'; }, 50);
+                setTimeout(() => { card.style.transform = 'translateX(0)'; }, 100);
+            }
         }
-
-        // --- REPLACE 'echo' WITH YOUR ACTUAL LEVEL 1 ANSWER ---
-        if (answer === 'echo') {
-            feedbackBox.className = "feedback success";
-            feedbackBox.textContent = "✔ Sequence matches! Establishing pathway directly to Level 2 matrix...";
-            feedbackBox.style.display = "block";
-
-            setTimeout(() => {
-                // REDIRECTS CLEANLY TO THE FOLDER DIRECTORY FOR LEVEL 2
-                window.location.href = '/level2/';
-            }, 1200);
-        } else {
-            feedbackBox.className = "feedback error";
-            feedbackBox.textContent = "❌ Cryptographic configuration mismatch. Gateway remains sealed.";
-            feedbackBox.style.display = "block";
-        }
-    });
-</script>
+    </script>
 </body>
 </html>

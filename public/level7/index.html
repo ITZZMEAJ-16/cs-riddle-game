@@ -8,7 +8,7 @@
         .card { background: #111; border: 1px solid #4d3318; padding: 40px; border-radius: 8px; text-align: center; max-width: 450px; transition: transform 0.1s ease; }
         .color-box { width: 120px; height: 120px; background-color: #deadbeef; margin: 20px auto; border: 2px solid white; border-radius: 4px; }
         input { background: #222; border: 1px solid #ffb86c; color: white; padding: 10px; text-align: center; width: 80%; margin-bottom: 15px; }
-        button { background: #ffb86c; color: black; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; font-family: monospace; }
+        button { background: #ffb86c; color: black; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -26,19 +26,10 @@
     </div>
 
     <script>
-        function playSynthSound(type) {
-            const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return;
-            const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            if (type === 'success') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            } else {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, ctx.currentTime); osc.frequency.linearRampToValueAtTime(70, ctx.currentTime + 0.25);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-            }
-            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
-        }
+        const successAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav');
+        const failAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
+
+        document.addEventListener('keydown', () => { successAudio.load(); failAudio.load(); }, { once: true });
 
         async function submitLevel(e) {
             e.preventDefault();
@@ -50,10 +41,10 @@
             const data = await res.json();
             
             if (data.success) {
-                playSynthSound('success');
-                setTimeout(() => { window.location.href = data.nextLevel; }, 500);
+                successAudio.play().catch(p => console.log(p));
+                setTimeout(() => { window.location.href = data.nextLevel; }, 600);
             } else {
-                playSynthSound('fail');
+                failAudio.play().catch(p => console.log(p));
                 const card = document.querySelector('.card');
                 card.style.transform = 'translateX(10px)';
                 setTimeout(() => { card.style.transform = 'translateX(-10px)'; }, 50);

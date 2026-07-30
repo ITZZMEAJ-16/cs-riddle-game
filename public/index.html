@@ -2,69 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Enigma Core | Registration Gate</title>
+    <title>The Sandbox Enigma</title>
     <style>
-        body { background: #0d1117; color: #c9d1d9; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .gate-container { background: #161b22; border: 1px solid #30363d; padding: 40px; border-radius: 6px; width: 360px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        h2 { color: #58a6ff; margin-top: 0; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-size: 13px; color: #8b949e; }
-        input { width: 100%; padding: 10px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; font-family: monospace; box-sizing: border-box; }
-        input:focus { border-color: #58a6ff; outline: none; }
-        button { width: 100%; padding: 12px; background: #238636; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-family: monospace; }
+        body { background: #0d1117; color: #58a6ff; font-family: monospace; text-align: center; padding: 50px; }
+        button { background: #238636; color: white; border: none; padding: 15px 30px; font-size: 18px; cursor: pointer; border-radius: 5px; margin-top: 20px; font-family: monospace; }
         button:hover { background: #2ea043; }
-        .error-msg { color: #f85149; font-size: 12px; margin-top: 15px; display: none; padding: 10px; background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.2); border-radius: 4px; }
-        .success-msg { color: #56d364; font-size: 12px; margin-top: 15px; display: none; padding: 10px; background: rgba(86, 211, 100, 0.1); border: 1px solid rgba(86, 211, 100, 0.2); border-radius: 4px; }
     </style>
 </head>
 <body>
+    <h1>[ THE SANDBOX ENIGMA ]</h1>
+    <p>A multi-level terminal challenge testing your structural logic, technical deduction, and engineering intuition.</p>
+    <button onclick="startGame()">INITIALIZE SYSTEM</button>
 
-<div class="gate-container">
-    <h2>🔐 ENIGMA GATEWAY</h2>
-    <div id="email-panel">
-        <div class="input-group">
-            <label>ENTER YOUR EMAIL ADDRESS</label>
-            <input type="email" id="player-email" placeholder="player@example.com" required>
-        </div>
-        <button id="btn-submit">ENTER SYSTEM</button>
-    </div>
-    <div id="error-box" class="error-msg"></div>
-    <div id="success-box" class="success-msg"></div>
-</div>
-
-<script>
-    const BACKEND_URL = window.location.origin; // Dynamically uses your render domain
-    const errorBox = document.getElementById('error-box');
-    const successBox = document.getElementById('success-box');
-
-    function showError(msg) { errorBox.textContent = msg; errorBox.style.display = 'block'; successBox.style.display = 'none'; }
-    function showSuccess(msg) { successBox.textContent = msg; successBox.style.display = 'block'; errorBox.style.display = 'none'; }
-
-    document.getElementById('btn-submit').addEventListener('click', async () => {
-        const email = document.getElementById('player-email').value.trim();
-        if (!email) { showError("Please enter your email."); return; }
-
-        showSuccess("Connecting to system gateway...");
-
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/start`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-            const data = await response.json();
-
-            if (data.success && data.redirect) {
-                showSuccess("Access Granted. Initializing levels...");
-                setTimeout(() => { window.location.href = data.redirect; }, 800);
-            } else {
-                showError(data.message || "Routing verification failure.");
+    <script>
+        const startAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav');
+        async function startGame() {
+            startAudio.play().catch(e => console.log(e));
+            const res = await fetch('/api/start', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                setTimeout(() => { window.location.href = data.redirect; }, 400);
             }
-        } catch (err) {
-            showError("System link fault. Verify server connection status.");
         }
-    });
-</script>
+    </script>
 </body>
 </html>
