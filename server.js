@@ -14,6 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+let gameStarted = false; // Global flag to control game state
 if (process.env.NODE_ENV === 'production') {
     app.set('trust proxy', 1); // Trust proxy headers on Render
 }
@@ -132,12 +133,14 @@ app.post('/api/login', async (req, res) => {
 
     if (user) {
         const userId = participants.indexOf(user); 
+        const deadline = Date.now() + 60 * 60 * 1000; // 1 hour from now
 
         res.cookie('user_id', userId, COOKIE_OPTIONS);
         res.cookie('player_level', '1', COOKIE_OPTIONS);
         res.cookie('player_name', user.name, COOKIE_OPTIONS);
         res.cookie('player_reg', user.regNo, COOKIE_OPTIONS);
-
+        res.cookie('deadline', deadline.toString(), COOKIE_OPTIONS);
+        
         res.json({ success: true, redirect: '/level1/' });
     } else {
         res.status(400).json({ success: false, message: 'Invalid credentials.' });
@@ -160,6 +163,12 @@ app.get('/api/hidden-packet-stream', checkAuth, (req, res) => {
 });
 
 app.post('/api/submit-answer', checkAuth, (req, res) => {
+    const deadline = req.signedCookies.deadline ? parseInt(req.signedCookies.deadline, 10) : null;
+
+    if (deadline && Date.now() > deadline) {
+        return res.status(403).json({ success: false, message: "Time's up! You have exceeded the 1-hour limit." });
+    }
+
     const { answer } = req.body;
     const currentProgress = req.signedCookies.player_level ? parseInt(req.signedCookies.player_level, 10) : 1;
     const correctAnswer = RIDDLE_ANSWERS[currentProgress];
@@ -208,6 +217,16 @@ const adminAuth = basicAuth({
     realm: 'AdminArea',
 });
 
+app.post('/admin/start-game', adminAuth, (req, res) => {
+    if (!gameStarted) {
+        gameStarted = true;
+        console.log('🏁 The game has been started by an admin.');
+        res.send('Game started successfully!');
+    } else {
+        res.send('The game has already started.');
+    }
+});
+
 app.get('/admin/leaderboard', adminAuth, async (req, res) => {
     try {
         const result = await pool.query("SELECT name, reg_no, to_char(completion_time, 'YYYY-MM-DD HH24:MI:SS') as time FROM leaderboard ORDER BY completion_time ASC");
@@ -223,6 +242,9 @@ app.get('/admin/leaderboard', adminAuth, async (req, res) => {
         res.send(`
             <body style='background:#0d1117; color:#c9d1d9; font-family:monospace; padding: 20px;'>
                 <h1>Leaderboard</h1>
+                <form action="/admin/start-game" method="POST" style="margin-bottom: 20px;">
+                    <button type="submit" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Start Game</button>
+                </form>
                 <table border="1" style="width:100%; border-collapse: collapse;">
                     <tr style="background:#161b22;"><th>Rank</th><th>Name</th><th>Reg No</th><th>Completion Time</th></tr>
                     ${rows}
