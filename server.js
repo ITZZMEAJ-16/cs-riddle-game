@@ -26,9 +26,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.JWT_SECRET || 'secure_competition_secret_998877'));
 
 // --- Database ---
+// Supabase and similar cloud Postgres services often use a certificate chain that
+// requires TLS but not strict CA verification in Node.js.
 const pool = new pg.Pool({
-    connectionString: `${process.env.DATABASE_URL}${IS_PROD ? '?sslmode=require' : ''}`,
-    ssl: IS_PROD ? { rejectUnauthorized: false } : false // rejectUnauthorized is handled by sslmode
+    connectionString: process.env.DATABASE_URL,
+    ssl: IS_PROD || process.env.DATABASE_URL?.includes('sslmode=require')
+        ? { rejectUnauthorized: false }
+        : false
 });
 
 async function initDatabase() {
