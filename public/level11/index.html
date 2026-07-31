@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Level 11</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Level 11: Reverse Engineering</h1>
+        <p>Find the right input to proceed.</p>
+        <input type="text" id="revInput" placeholder="Enter text to check">
+        <button id="checkBtn" disabled>Submit</button>
+    </div>
+
+    <script>
+        // You're not supposed to see this... or are you?
+        const revInput = document.getElementById('revInput');
+        const checkBtn = document.getElementById('checkBtn');
+
+        revInput.addEventListener('input', () => {
+            let val = revInput.value;
+            let p1 = val.slice(0, 5);
+            let p2 = val.slice(5);
+            let res = p2.split('').reverse().join('') + p1.split('').reverse().join('');
+            if (res === "sdrawkcab") {
+                checkBtn.disabled = false;
+                checkBtn.textContent = "The answer is 'backwards'";
+            }
+        });
+    </script>
+</body>
+</html>

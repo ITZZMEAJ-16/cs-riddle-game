@@ -108,9 +108,18 @@ const checkProgress = (req, res, next) => {
 // --- HARDCODED CREDENTIALS FOR MULTIPLE USERS ---
 // You can add more participants to this list
 const participants = [
-    { email: "adhijeevan92@gmail.com", password: "password1", name: "Participant One", regNo: "001" },
-    { email: "user2@example.com", password: "password2", name: "Participant Two", regNo: "002" },
-    { email: "user3@example.com", password: "password3", name: "Participant Three", regNo: "003" }
+    { email: "adhijeevan92@gmail.com", password: "6508", name: "Adhitya Jeevan", regNo: "000" },
+    { email: "muthuakshaya166@gmail.com", password: "6771", name: "Akshaya A", regNo: "001" },
+    { email: "divyamaryjohn22@gmail.com", password: "4465", name: "Divya Mary John", regNo: "002" },
+    { email: "gurugubilli_b240720ee@nitc.ac.in", password: "8679", name: "G Sai Deekshith", regNo: "003" },
+    { email: "sankar689510@gmail.com", password: "8153", name: "Sankaranarayanan M", regNo: "004" },
+    { email: "abelmathew006@gmail.com", password: "1370", name: "Abel Mathew, regNo: "005" },
+    { email: "nandhanars1111@gmail.com", password: "6179", name: "Nandhana R S", regNo: "006" },
+    { email: "amithasathyan286@gmail.com", password: "0577", name: "Amitha Sathyan", regNo: "007" }
+    { email: "amankanhikoth04@gmail.com", password: "4103", name: "Aman K", regNo: "008" },
+    { email: "lachulakshmipriya99@gmail.com", password: "0678", name: "Lakshmi Priya", regNo: "009" },
+    { email: "meenuks156@gmail.com", password: "2291", name: "Meenu K S", regNo: "010" }
+
 ];
 
 app.post('/api/login', async (req, res) => {
