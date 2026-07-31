@@ -115,7 +115,7 @@ const participants = [
     { email: "sankar689510@gmail.com", password: "8153", name: "Sankaranarayanan M", regNo: "004" },
     { email: "abelmathew006@gmail.com", password: "1370", name: "Abel Mathew", regNo: "005" },
     { email: "nandhanars1111@gmail.com", password: "6179", name: "Nandhana R S", regNo: "006" },
-    { email: "amithasathyan286@gmail.com", password: "0577", name: "Amitha Sathyan", regNo: "007" }
+    { email: "amithasathyan286@gmail.com", password: "0577", name: "Amitha Sathyan", regNo: "007" },
     { email: "amankanhikoth04@gmail.com", password: "4103", name: "Aman K", regNo: "008" },
     { email: "lachulakshmipriya99@gmail.com", password: "0678", name: "Lakshmi Priya", regNo: "009" },
     { email: "meenuks156@gmail.com", password: "2291", name: "Meenu K S", regNo: "010" },
