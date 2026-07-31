@@ -38,16 +38,16 @@ const pool = new pg.Pool({
 
 async function initDatabase() {
     try {
-        // Drop the table to ensure a clean start, fixing any schema issues.
-        // This is safe to do before the competition starts.
-        // await pool.query(`DROP TABLE IF EXISTS leaderboard;`); // This is destructive, disabled for safety.
-
+        // Drop and recreate the table to ensure the new schema is applied.
+        // This is safe before the competition starts.
+        await pool.query(`DROP TABLE IF EXISTS leaderboard;`);
         await pool.query(`
             CREATE TABLE IF NOT EXISTS leaderboard (
                 id SERIAL PRIMARY KEY,
                 name TEXT,
                 reg_no TEXT UNIQUE NOT NULL,
-                completion_time TIMESTAMPTZ DEFAULT NOW()
+                level_reached INT DEFAULT 1,
+                last_update_time TIMESTAMPTZ DEFAULT NOW()
             )
         `);
         console.log("✅ Supabase Cloud Database Connected & Tables Initialized.");
@@ -134,13 +134,22 @@ app.post('/api/login', async (req, res) => {
     if (user) {
         const userId = participants.indexOf(user); 
         const deadline = Date.now() + 60 * 60 * 1000; // 1 hour from now
-
+        
+        try {
+            // Add user to leaderboard on login, or update their login time if they already exist.
+            await pool.query(
+                `INSERT INTO leaderboard (name, reg_no, level_reached, last_update_time) VALUES ($1, $2, 1, NOW())
+                 ON CONFLICT (reg_no) DO UPDATE SET last_update_time = NOW(), level_reached = GREATEST(leaderboard.level_reached, 1)`,
+                [user.name, user.regNo]
+            );
+        } catch (err) {
+            console.error("Error inserting user into leaderboard on login:", err);
+        }
         res.cookie('user_id', userId, COOKIE_OPTIONS);
         res.cookie('player_level', '1', COOKIE_OPTIONS);
         res.cookie('player_name', user.name, COOKIE_OPTIONS);
         res.cookie('player_reg', user.regNo, COOKIE_OPTIONS);
         res.cookie('deadline', deadline.toString(), COOKIE_OPTIONS);
-        
         res.json({ success: true, redirect: '/level1/' });
     } else {
         res.status(400).json({ success: false, message: 'Invalid credentials.' });
@@ -158,11 +167,11 @@ app.get('/level:level', checkAuth, checkProgress, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', `level${level}`, 'index.html'));
 });
 
-app.get('/api/hidden-packet-stream', checkAuth, (req, res) => {
+app.get('/api/hidden-packet-stream', checkAuth, (req, res) => { // This seems to be a level-specific endpoint
     res.json({ message: "Monitoring...", hidden_flag: "packet_captured" });
 });
 
-app.post('/api/submit-answer', checkAuth, (req, res) => {
+app.post('/api/submit-answer', checkAuth, async (req, res) => {
     const deadline = req.signedCookies.deadline ? parseInt(req.signedCookies.deadline, 10) : null;
 
     if (deadline && Date.now() > deadline) {
@@ -171,11 +180,24 @@ app.post('/api/submit-answer', checkAuth, (req, res) => {
 
     const { answer } = req.body;
     const currentProgress = req.signedCookies.player_level ? parseInt(req.signedCookies.player_level, 10) : 1;
+    const regNo = req.signedCookies.player_reg;
     const correctAnswer = RIDDLE_ANSWERS[currentProgress];
     
     if (answer && answer.trim().toLowerCase() === correctAnswer.toLowerCase()) {
         const nextLevel = currentProgress + 1;
         res.cookie('player_level', nextLevel.toString(), COOKIE_OPTIONS);
+
+        // Update leaderboard with new progress
+        if (regNo) {
+            try {
+                await pool.query(
+                    "UPDATE leaderboard SET level_reached = $1, last_update_time = NOW() WHERE reg_no = $2",
+                    [nextLevel, regNo]
+                );
+            } catch (err) {
+                console.error("Error updating leaderboard:", err);
+            }
+        }
         return res.json({ success: true, nextLevel: nextLevel > Object.keys(RIDDLE_ANSWERS).length ? '/victory' : `/level${nextLevel}/` });
     } else {
         return res.json({ success: false, message: "Incorrect key string." });
@@ -189,11 +211,12 @@ app.get('/victory', checkAuth, async (req, res) => {
     
     if (currentProgress > Object.keys(RIDDLE_ANSWERS).length && name && regNo) {
         try {
+            // Final update to ensure completion is logged, though submit-answer should have handled it.
             await pool.query(
-                "INSERT INTO leaderboard (name, reg_no) VALUES ($1, $2) ON CONFLICT (reg_no) DO NOTHING",
-                [name, regNo]
+                "UPDATE leaderboard SET level_reached = $1, last_update_time = NOW() WHERE reg_no = $2",
+                [currentProgress, regNo]
             );
-            console.log(`💾 Saved ${name} securely to Supabase Cloud.`);
+            console.log(`🏆 ${name} has completed all levels!`);
             res.send("<body style='background:#0d1117; color:#56d364; font-family:monospace; text-align:center; padding:100px;'><h1>🎉 CONGRATULATIONS CONQUEROR!</h1><p style='color:#c9d1d9;'>Your run has been permanently logged in the database cloud.</p></body>");
         } catch (err) {
             console.error(err);
@@ -229,12 +252,13 @@ app.post('/admin/start-game', adminAuth, (req, res) => {
 
 app.get('/admin/leaderboard', adminAuth, async (req, res) => {
     try {
-        const result = await pool.query("SELECT name, reg_no, to_char(completion_time, 'YYYY-MM-DD HH24:MI:SS') as time FROM leaderboard ORDER BY completion_time ASC");
+        const result = await pool.query("SELECT name, reg_no, level_reached, to_char(last_update_time, 'YYYY-MM-DD HH24:MI:SS') as time FROM leaderboard ORDER BY level_reached DESC, last_update_time ASC");
         let rows = result.rows.map((player, idx) => `
             <tr>
                 <td>${idx + 1}</td>
                 <td>${player.name}</td>
                 <td>${player.reg_no}</td>
+                <td>${player.level_reached > Object.keys(RIDDLE_ANSWERS).length ? 'Finished' : player.level_reached -1}</td>
                 <td>${player.time}</td>
             </tr>
         `).join('');
@@ -246,7 +270,7 @@ app.get('/admin/leaderboard', adminAuth, async (req, res) => {
                     <button type="submit" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Start Game</button>
                 </form>
                 <table border="1" style="width:100%; border-collapse: collapse;">
-                    <tr style="background:#161b22;"><th>Rank</th><th>Name</th><th>Reg No</th><th>Completion Time</th></tr>
+                    <tr style="background:#161b22;"><th>Rank</th><th>Name</th><th>Reg No</th><th>Level Cleared</th><th>Last Update</th></tr>
                     ${rows}
                 </table>
             </body>
