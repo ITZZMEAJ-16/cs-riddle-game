@@ -69,9 +69,6 @@ const RIDDLE_ANSWERS = {
     6: "i", // Assuming this is the answer for the existing level 6
     7: "deadbeef", // Assuming this is the answer for the existing level 7
     8: "root_access_granted", // Assuming this is the answer for the existing level 8
-    9: "encrypt",
-    10: "plaintext",
-    11: "backwards"
 };
 
 const COOKIE_OPTIONS = {
