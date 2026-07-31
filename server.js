@@ -121,6 +121,9 @@ const participants = [
     { email: "amankanhikoth04@gmail.com", password: "4103", name: "Aman K", regNo: "008" },
     { email: "lachulakshmipriya99@gmail.com", password: "0678", name: "Lakshmi Priya", regNo: "009" },
     { email: "meenuks156@gmail.com", password: "2291", name: "Meenu K S", regNo: "010" },
+    { email: "uthraja2006@gmail.com", password: "0574", name: "Uthraja J", regNo: "011" },
+    { email: "irfanhabeebk2005@gmail.com", password: "6621", name: "Irfan Habeeb K", regNo: "012" },
+    { email: "harikrishnan0709@gmail.com", password: "9091", name: "Harikrishnan S", regNo: "013" }
 ];
 
 app.post('/api/login', async (req, res) => {
