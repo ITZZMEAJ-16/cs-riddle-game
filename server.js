@@ -28,14 +28,14 @@ app.use(cookieParser(process.env.JWT_SECRET || 'secure_competition_secret_998877
 // --- Database ---
 const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: IS_PROD ? { rejectUnauthorized: true } : false
 });
 
 async function initDatabase() {
     try {
         // Drop the table to ensure a clean start, fixing any schema issues.
         // This is safe to do before the competition starts.
-        await pool.query(`DROP TABLE IF EXISTS leaderboard;`);
+        // await pool.query(`DROP TABLE IF EXISTS leaderboard;`); // This is destructive, disabled for safety.
 
         await pool.query(`
             CREATE TABLE IF NOT EXISTS leaderboard (
@@ -113,13 +113,12 @@ const participants = [
     { email: "divyamaryjohn22@gmail.com", password: "4465", name: "Divya Mary John", regNo: "002" },
     { email: "gurugubilli_b240720ee@nitc.ac.in", password: "8679", name: "G Sai Deekshith", regNo: "003" },
     { email: "sankar689510@gmail.com", password: "8153", name: "Sankaranarayanan M", regNo: "004" },
-    { email: "abelmathew006@gmail.com", password: "1370", name: "Abel Mathew, regNo: "005" },
+    { email: "abelmathew006@gmail.com", password: "1370", name: "Abel Mathew", regNo: "005" },
     { email: "nandhanars1111@gmail.com", password: "6179", name: "Nandhana R S", regNo: "006" },
     { email: "amithasathyan286@gmail.com", password: "0577", name: "Amitha Sathyan", regNo: "007" }
     { email: "amankanhikoth04@gmail.com", password: "4103", name: "Aman K", regNo: "008" },
     { email: "lachulakshmipriya99@gmail.com", password: "0678", name: "Lakshmi Priya", regNo: "009" },
-    { email: "meenuks156@gmail.com", password: "2291", name: "Meenu K S", regNo: "010" }
-
+    { email: "meenuks156@gmail.com", password: "2291", name: "Meenu K S", regNo: "010" },
 ];
 
 app.post('/api/login', async (req, res) => {
@@ -167,7 +166,7 @@ app.post('/api/submit-answer', checkAuth, (req, res) => {
     if (answer && answer.trim().toLowerCase() === correctAnswer.toLowerCase()) {
         const nextLevel = currentProgress + 1;
         res.cookie('player_level', nextLevel.toString(), COOKIE_OPTIONS);
-        return res.json({ success: true, nextLevel: nextLevel === 9 ? '/victory' : `/level${nextLevel}/` });
+        return res.json({ success: true, nextLevel: nextLevel > Object.keys(RIDDLE_ANSWERS).length ? '/victory' : `/level${nextLevel}/` });
     } else {
         return res.json({ success: false, message: "Incorrect key string." });
     }
@@ -178,7 +177,7 @@ app.get('/victory', checkAuth, async (req, res) => {
     const name = req.signedCookies.player_name;
     const regNo = req.signedCookies.player_reg;
     
-    if (currentProgress >= 12 && name) {
+    if (currentProgress > Object.keys(RIDDLE_ANSWERS).length && name && regNo) {
         try {
             await pool.query(
                 "INSERT INTO leaderboard (name, reg_no) VALUES ($1, $2) ON CONFLICT (reg_no) DO NOTHING",
