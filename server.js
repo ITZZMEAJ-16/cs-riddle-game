@@ -27,8 +27,8 @@ app.use(cookieParser(process.env.JWT_SECRET || 'secure_competition_secret_998877
 
 // --- Database ---
 const pool = new pg.Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: IS_PROD ? { rejectUnauthorized: true } : false
+    connectionString: `${process.env.DATABASE_URL}${IS_PROD ? '?sslmode=require' : ''}`,
+    ssl: IS_PROD ? { rejectUnauthorized: false } : false // rejectUnauthorized is handled by sslmode
 });
 
 async function initDatabase() {
